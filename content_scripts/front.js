@@ -14,6 +14,7 @@ function createFront() {
 
     var _callbacks = {};
     function frontendCommand(args, successById) {
+        console.log('frontend command', args);
         args.commandToFrontend = true;
         args.origin = getDocumentOrigin();
         args.id = generateQuickGuid();
@@ -22,6 +23,7 @@ function createFront() {
             _callbacks[args.id] = successById;
         }
         frontendPromise.then(function() {
+            console.log('frontend command post msg', args);
             runtime.postTopMessage(args);
         });
     }
@@ -260,10 +262,15 @@ function createFront() {
         if (Normal.repeats !== "") {
             RUNTIME('focusTabByIndex');
         } else {
+            console.log('content script: choose the tab');
             frontendCommand({
                 action: 'chooseTab'
             });
         }
+    };
+    self.chooseTabGroup = function() {
+        console.log('content script front: choose tab group');
+        frontendCommand({ action: 'chooseTabGroup' });
     };
 
     self.openOmnibar = function(args) {
@@ -551,6 +558,7 @@ function createFront() {
     });
 
     window.addEventListener('message', function (event) {
+        console.log('content script on message', event);
         var _message = event.data;
         if (_message === undefined) {
             return;
@@ -566,6 +574,7 @@ function createFront() {
         } else if (_message.action === "performInlineQueryResult") {
             _showQueryResult(_message.pos, _message.result);
         } else if (_active) {
+            console.log('content script activated');
             if (_message.responseToContent && _callbacks[_message.id]) {
                 var f = _callbacks[_message.id];
                 // returns true to make callback stay for coming response.

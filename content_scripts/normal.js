@@ -184,7 +184,7 @@ function createMode() {
                 sl = runtime.conf.showModeStatus ? cm.name :  "";
             }
             if (sl !== "" && window !== top) {
-                if (chrome.extension.getURL('').indexOf(window.location.origin) === 0) {
+                if (chrome.runtime.getURL('').indexOf(window.location.origin) === 0) {
                     if (cm !== Find) {
                         sl += "✩";
                     }
@@ -470,7 +470,7 @@ function createNormal() {
     };
 
     self.toggleBlocklist = function() {
-        if (document.location.href.indexOf(chrome.extension.getURL("")) !== 0) {
+        if (document.location.href.indexOf(chrome.runtime.getURL("")) !== 0) {
             RUNTIME('toggleBlocklist', {
                 blocklistPattern: (runtime.conf.blocklistPattern ? runtime.conf.blocklistPattern.toJSON() : "")
             }, function(resp) {

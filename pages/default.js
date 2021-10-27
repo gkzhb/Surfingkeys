@@ -113,6 +113,9 @@ mapkey('ZR', '#5Restore last session', function() {
 mapkey('T', '#3Choose a tab', function() {
     Front.chooseTab();
 });
+mapkey('tg', '#3Choose a tab group', function() {
+    Front.chooseTabGroup();
+});
 mapkey('?', '#0Show usage', function() {
     Front.showUsage();
 });
@@ -203,7 +206,7 @@ mapkey('O', '#1Open detected links from text', function() {
 
 mapkey(';s', 'Toggle PDF viewer from SurfingKeys', function() {
     var pdfUrl = window.location.href;
-    if (pdfUrl.indexOf(chrome.extension.getURL("/pages/pdf_viewer.html")) === 0) {
+    if (pdfUrl.indexOf(chrome.runtime.getURL("/pages/pdf_viewer.html")) === 0) {
         pdfUrl = window.location.search.substr(3);
         chrome.storage.local.set({"noPdfViewer": 1}, function() {
             window.location.replace(pdfUrl);
@@ -272,7 +275,7 @@ mapkey('D', '#4Go forward in history', function() {
 mapkey('r', '#4Reload the page', function() {
     RUNTIME("reloadTab", { nocache: false });
 });
-mapkey('t', '#8Open a URL', function() {
+mapkey('tt', '#8Open a URL', function() {
     Front.openOmnibar({type: "URLs", extra: "getAllSites"});
 });
 mapkey('go', '#8Open a URL in current tab', function() {
@@ -423,7 +426,7 @@ mapkey('yT', '#3Duplicate current tab in background', function() {
 });
 mapkey('yy', "#7Copy current page's URL", function() {
     var url = window.location.href;
-    if (url.indexOf(chrome.extension.getURL("/pages/pdf_viewer.html")) === 0) {
+    if (url.indexOf(chrome.runtime.getURL("/pages/pdf_viewer.html")) === 0) {
         url = window.location.search.substr(3);
     }
     Clipboard.write(url);

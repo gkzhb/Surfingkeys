@@ -116,6 +116,7 @@ var Front = (function() {
     var _popup = document.getElementById('sk_popup');
     var _editor = document.getElementById('sk_editor');
     var _tabs = document.getElementById('sk_tabs');
+    var _tabGroups = document.getElementById('sk_tab_groups');
     var banner = document.getElementById('sk_banner');
     var _bubble = document.getElementById('sk_bubble');
     var sk_bubble_content = _bubble.querySelector("div.sk_bubble_content");
@@ -160,12 +161,14 @@ var Front = (function() {
     }
 
     function showPopup(td, args) {
+        console.log('showpopup', td, args);
         self.enter(0, true);
         setDisplay(td, args);
         self.flush();
     }
 
     _tabs.onShow = function(tabs) {
+        console.log('show tabs');
         setSanitizedContent(_tabs, "");
         _tabs.trie = new Trie();
         var hintLabels = Hints.genLabels(tabs.length);
@@ -182,13 +185,40 @@ var Front = (function() {
             tab.append(createElementWithContent('div', tab.url, {class: "sk_tab_url"}));
         });
     };
+    _tabGroups.onShow = function(tabGroups) {
+        console.log('show tabGroups');
+        setSanitizedContent(_tabGroups, "");
+        _tabGroups.trie = new Trie();
+        var hintLabels = Hints.genLabels(tabGroups.length);
+        tabGroups.forEach(function(t, i) {
+            var tabGroup = document.createElement('div');
+            tabGroup.setAttribute('class', 'sk_tab');
+            tabGroup.style.width = '200px';
+            _tabGroups.trie.add(hintLabels[i].toLowerCase(), t);
+            setSanitizedContent(tabGroup, `<div class=sk_tab_hint>${hintLabels[i]}</div><div class=sk_tab_wrap><div class=sk_tab_icon><img src='chrome://favicon/${t.url}'></div><div class=sk_tab_title>${htmlEncode(t.title)}</div></div>`);
+            _tabGroups.append(tabGroup);
+        });
+    };
     _actions['chooseTab'] = function() {
+        console.log('chooseTab');
         RUNTIME('getTabs', null, function(response) {
+            console.log('getTabs response', response);
             if (response.tabs.length > runtime.conf.tabsThreshold) {
                 showPopup(self.omnibar, {type: 'Tabs'});
             } else if (response.tabs.length > 0) {
                 showPopup(_tabs, response.tabs);
             }
+        });
+    };
+    _actions['chooseTabGroup'] = function() {
+        console.log('chooseTabGroup');
+        RUNTIME('getTabGroups', null, function(response) {
+            /* if (response.tabs.length > runtime.conf.tabsThreshold) {
+                showPopup(self.omnibar, {type: 'Tabs'});
+            } else if (response.tabs.length > 0) { */
+                console.log('chooseTabGroup show popup', response.tabGroups);
+                showPopup(_tabGroups, response.tabGroups);
+            // }
         });
     };
 
@@ -509,6 +539,7 @@ var Front = (function() {
     };
 
     window.addEventListener('message', function(event) {
+        console.log('front end message', event);
         var _message = event.data;
         if (_callbacks[_message.id]) {
             var f = _callbacks[_message.id];

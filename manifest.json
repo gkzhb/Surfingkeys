@@ -1,5 +1,5 @@
 {
-    "manifest_version": 2,
+    "manifest_version": 3,
     "name": "Surfingkeys",
     "short_name": "Rich shortcuts in vim spirit for productivity with keyboard.",
     "version": "0.9.74",
@@ -26,7 +26,7 @@
             "description": "Toggle current site in autoproxy_hosts."
         }
     },
-    "browser_action": {
+    "action": {
         "default_icon": {
             "16": "icons/16.png",
             "48": "icons/48.png"
@@ -37,21 +37,23 @@
     "author": "brook hong",
     "permissions": [
         "proxy",
-        "<all_urls>",
         "tabs",
         "history",
         "bookmarks",
         "storage",
         "sessions",
         "downloads",
+        "scripting",
+        "tabGroups",
         "topSites",
         "clipboardRead",
         "clipboardWrite"
     ],
+    "host_permissions": [
+        "*://*/*"
+    ],
     "background": {
-        "scripts": [
-            "background.js"
-        ]
+        "service_worker": "background.js"
     },
     "content_scripts": [
         {
@@ -72,14 +74,21 @@
             "all_frames": true
         }
     ],
-    "web_accessible_resources": [
-        "pages/default.js",
-        "pages/emoji.tsv",
-        "pages/l10n.json",
-        "pages/frontend.html",
-        "pages/pdf_viewer.html",
-        "pages/shadow.css",
-        "pages/default.css"
-    ],
-    "content_security_policy": "script-src 'self' https://www.google-analytics.com; object-src 'self'"
+    "web_accessible_resources": [{
+        "resources": [
+            "pages/default.js",
+            "pages/emoji.tsv",
+            "pages/l10n.json",
+            "pages/frontend.html",
+            "pages/pdf_viewer.html",
+            "pages/shadow.css",
+            "pages/default.css"
+        ],
+        "matches": ["*://*/*"],
+        "extension_ids": ["bgbhbnjkaffnjdgamogjnffaednbfdhf"]
+    }],
+    "content_security_policy": {
+        "script-src": "self",
+        "object-src": "self"
+    }
 }

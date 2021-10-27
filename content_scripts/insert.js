@@ -167,7 +167,7 @@ function createInsert() {
             } else {
                 _emojiPending = document.getSelection().focusOffset + 1;
             }
-            fetch(chrome.extension.getURL("pages/emoji.tsv"))
+            fetch(chrome.runtime.getURL("pages/emoji.tsv"))
                 .then(res => Promise.all([res.text()]))
                 .then(res => {
                     _emojiList = res[0].split("\n");

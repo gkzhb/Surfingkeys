@@ -521,7 +521,7 @@ if (window === top) {
 } else {
     // activate Modes in the frames on extension pages
     runtime.getTopURL(function(u) {
-        if (u.indexOf(chrome.extension.getURL("")) === 0) {
+        if (u.indexOf(chrome.runtime.getURL("")) === 0) {
             _initModules();
             _initContent();
         }

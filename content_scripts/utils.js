@@ -1,5 +1,5 @@
 function isInUIFrame() {
-    return document.location.href.indexOf(chrome.extension.getURL("")) === 0;
+    return document.location.href.indexOf(chrome.runtime.getURL("")) === 0;
 }
 
 function timeStampString(t) {
@@ -394,7 +394,7 @@ function initL10n(cb) {
             return str;
         });
     } else {
-        fetch(chrome.extension.getURL("pages/l10n.json")).then(function(res) {
+        fetch(chrome.runtime.getURL("pages/l10n.json")).then(function(res) {
             return res.json();
         }).then(function(l10n) {
             if (typeof(l10n[lang]) === "object") {

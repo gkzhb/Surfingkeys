@@ -292,7 +292,7 @@ document.getElementById('showDefaultSettings').onclick = function() {
         mappingsEditor.container.style.width = "100%";
     } else {
         httpRequest({
-            url: chrome.extension.getURL('/pages/default.js'),
+            url: chrome.runtime.getURL('/pages/default.js'),
         }, function(res) {
             defaultMappingsEditor.container.style.display = "inline-block";
             defaultMappingsEditor.setValue(res.text, -1);

@@ -1,3 +1,11 @@
+var _setScrollPos = function (x, y) {
+        document.scrollingElement.scrollLeft = x;
+        document.scrollingElement.scrollTop = y;
+    };
+var _nextFrame = function () {
+    typeof(getFrameId) === 'function' && getFrameId();
+};
+
 function request(url, onReady, headers, data, onException) {
     headers = headers || {};
     return new Promise(function(acc, rej) {
@@ -303,8 +311,10 @@ const ChromeService = (function() {
     function _setScrollPos_bg(tabId) {
         if (tabMessages.hasOwnProperty(tabId)) {
             var message = tabMessages[tabId];
-            chrome.tabs.executeScript(tabId, {
-                code: "_setScrollPos(" + message.scrollLeft + ", " + message.scrollTop + ")"
+            chrome.scripting.executeScript(tabId, {
+                args: [message.scrollLeft, message.scrollTop ],
+                func: _setScrollPos,
+                target: {tabId}
             });
             delete tabMessages[tabId];
         }
@@ -382,11 +392,13 @@ const ChromeService = (function() {
     });
 
     function getActiveTab(cb) {
+        console.log('background getActiveTabs');
         chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
             tabs.length > 0 && cb(tabs[0]);
         });
     }
     chrome.commands.onCommand.addListener(function(command) {
+        console.log('background command', command);
         switch (command) {
             case 'restartext':
                 chrome.tabs.query({}, function(tabs) {
@@ -408,6 +420,7 @@ const ChromeService = (function() {
                 break;
             case 'closeTab':
                 getActiveTab(function(tab) {
+                    console.log('background remove tab', tab);
                     chrome.tabs.remove(tab.id);
                 });
                 break;
@@ -438,6 +451,7 @@ const ChromeService = (function() {
         sendResponse(result);
     }
     chrome.runtime.onMessage.addListener(function (_message, _sender, _sendResponse) {
+        console.log('background on message', _message, self);
         if (self.hasOwnProperty(_message.action)) {
             if (_message.repeats > conf.repeatThreshold) {
                 _message.repeats = conf.repeatThreshold;
@@ -524,7 +538,7 @@ const ChromeService = (function() {
         loadSettings('blocklist', function(data) {
             var origin = ".*";
             var senderOrigin = sender.origin || new URL(getSenderUrl(sender)).origin;
-            if (chrome.extension.getURL("").indexOf(senderOrigin) !== 0) {
+            if (chrome.runtime.getURL("").indexOf(senderOrigin) !== 0) {
                 origin = senderOrigin;
             }
             if (data.blocklist.hasOwnProperty(origin)) {
@@ -543,7 +557,7 @@ const ChromeService = (function() {
     };
     self.toggleMouseQuery = function(message, sender, sendResponse) {
         loadSettings('mouseSelectToQuery', function(data) {
-            if (sender.tab && sender.tab.url.indexOf(chrome.extension.getURL("")) !== 0) {
+            if (sender.tab && sender.tab.url.indexOf(chrome.runtime.getURL("")) !== 0) {
                 var mouseSelectToQuery = data.mouseSelectToQuery || [];
                 var idx = mouseSelectToQuery.indexOf(message.origin);
                 if (idx === -1) {
@@ -574,6 +588,7 @@ const ChromeService = (function() {
     };
     self.jumpVIMark = function(message, sender, sendResponse) {
         loadSettings("marks", function(data) {
+            console.log('background jumpVIMark');
             var marks = data.marks;
             if (marks.hasOwnProperty(message.mark)) {
                 var markInfo = marks[message.mark];
@@ -692,6 +707,7 @@ const ChromeService = (function() {
         });
     };
     self.getTabs = function(message, sender, sendResponse) {
+        console.log('background getTabs');
         var tab = sender.tab;
         var queryInfo = message.queryInfo || {};
         chrome.tabs.query(queryInfo, function(tabs) {
@@ -727,6 +743,15 @@ const ChromeService = (function() {
             }
             _response(message, sendResponse, {
                 tabs: tabs
+            });
+        });
+    };
+    self.getTabGroups = function(message, sender, sendResponse) {
+        console.log('get tabgroup background');
+        var queryInfo = message.queryInfo || {};
+        chrome.tabGroups.query(queryInfo, function(tabGroups) {
+            _response(message, sendResponse, {
+                tabGroups
             });
         });
     };
@@ -875,6 +900,7 @@ const ChromeService = (function() {
     };
 
     function _closeTab(s, n) {
+        console.log('background _closeTab');
         chrome.tabs.query({currentWindow: true}, function(tabs) {
             tabs = tabs.map(function(e) { return e.id; });
             chrome.tabs.remove(tabs.slice(s.tab.index + (n < 0 ? n : 1),
@@ -886,10 +912,12 @@ const ChromeService = (function() {
     self.closeTabRight = function(message, sender, senderResponse) { _closeTab(sender, message.repeats); };
     self.closeTabsToLeft = function(message, sender, senderResponse) { _closeTab(sender, -sender.tab.index); };
     self.closeTabsToRight = function(message, sender, senderResponse) {
+        console.log('background closeTabsToRight');
         chrome.tabs.query({currentWindow: true},
                           function(tabs) { _closeTab(sender, tabs.length - sender.tab.index); });
     };
     self.tabOnly = function(message, sender, sendResponse) {
+        console.log('background tabOnly');
         chrome.tabs.query({currentWindow: true}, function(tabs) {
             tabs = tabs.map(function(e) { return e.id; }).filter(function(t) {
                 return t != sender.tab.id;
@@ -914,8 +942,16 @@ const ChromeService = (function() {
             }
         });
     };
+
+    self.group = function(message, sender, sendResponse) {
+        chrome.tabs.group(message.options);
+    };
+    self.ungroupTab = function(message, sender, sendResponse) {
+        chrome.tabs.ungroup(message.tabIds);
+    };
     let previousWindowChoice = -1;
     self.getWindows = function (message, sender, sendResponse) {
+        console.log('background getWindows');
         chrome.tabs.query({currentWindow: false}, function(tabs) {
             const windows = {};
             tabs.forEach(t => {
@@ -945,6 +981,7 @@ const ChromeService = (function() {
         previousWindowChoice = message.windowId;
     };
     self.gatherWindows = function(message, sender, sendResponse) {
+        console.log('background gatherWindows');
         const windowId = sender.tab.windowId;
         chrome.tabs.query({currentWindow: false}, function(tabs) {
             tabs.forEach(function(tab) {
@@ -953,6 +990,7 @@ const ChromeService = (function() {
         });
     };
     self.gatherTabs = function(message, sender, sendResponse) {
+        console.log('background gatherTabs');
         const windowId = sender.tab.windowId;
         message.tabs.forEach(function(tab) {
             chrome.tabs.move(tab.id, {windowId, index: -1});
@@ -1077,12 +1115,12 @@ const ChromeService = (function() {
     self.openLink = function(message, sender, sendResponse) {
         var url = normalizeURL(message.url);
         if (url.startsWith("javascript:")) {
-            chrome.tabs.executeScript(sender.tab.id, {
+            /* chrome.tabs.executeScript(sender.tab.id, {
                 code: url.substr(11)
-            });
+            }); */
         } else {
             if (message.tab.tabbed) {
-                if (sender.frameId !== 0 && chrome.extension.getURL("pages/frontend.html") === sender.url
+                if (sender.frameId !== 0 && chrome.runtime.getURL("pages/frontend.html") === sender.url
                     || !sender.tab) {
                     // if current call was made from Omnibar, the sender.tab may be stale,
                     // as sender was bound when port was created.
@@ -1137,7 +1175,7 @@ const ChromeService = (function() {
         }
     };
     self.setSurfingkeysIcon = function(message, sender, sendResponse) {
-        chrome.browserAction.setIcon({
+        chrome.action.setIcon({
             path: (message.status ? 'icons/48-x.png' : 'icons/48.png'),
             tabId: (sender.tab ? sender.tab.id : undefined)
         });
@@ -1151,11 +1189,13 @@ const ChromeService = (function() {
     };
     self.nextFrame = function(message, sender, sendResponse) {
         var tid = sender.tab.id;
-        chrome.tabs.executeScript(tid, {
-            allFrames: true,
-            matchAboutBlank: true,
-            runAt: "document_start",
-            code: "typeof(getFrameId) === 'function' && getFrameId()"
+        console.log(chrome.scripting);
+        chrome.scripting.executeScript({
+            target: {
+                allFrames: true,
+                tabId: tid,
+            },
+            func: _nextFrame
         }, function(framesInTab) {
             framesInTab = framesInTab.filter(function(frameId) {
                 return frameId;
@@ -1180,6 +1220,7 @@ const ChromeService = (function() {
         });
     };
     self.moveTab = function(message, sender, sendResponse) {
+        console.log('background moveTab');
         chrome.tabs.query({
             windowId: sender.tab.windowId
         }, function(tabs) {
@@ -1202,6 +1243,7 @@ const ChromeService = (function() {
         _quit();
     };
     self.createSession = function(message, sender, sendResponse) {
+        console.log('background createSession');
         loadSettings('sessions', function(data) {
             chrome.tabs.query({}, function(tabs) {
                 var tabGroup = {};
@@ -1230,6 +1272,7 @@ const ChromeService = (function() {
         });
     };
     self.openSession = function(message, sender, sendResponse) {
+        console.log('background openSession');
         loadSettings('sessions', function(data) {
             if (data.sessions.hasOwnProperty(message.name)) {
                 var urls = data.sessions[message.name]['tabs'];
@@ -1287,13 +1330,14 @@ const ChromeService = (function() {
         });
     };
     self.download = function(message, sender, sendResponse) {
-        chrome.downloads.download({ url: message.url })
+        chrome.downloads.download({ url: message.url });
     };
     self.executeScript = function(message, sender, sendResponse) {
-        chrome.tabs.executeScript(sender.tab.id, {
+        chrome.scripting.executeScript({
+            tabId: sender.tab.id, 
             frameId: sender.frameId,
-            code: message.code,
-            matchAboutBlank: true,
+            // code: message.code,
+            // matchAboutBlank: true,
             file: message.file
         }, function(result) {
             _response(message, sendResponse, {
