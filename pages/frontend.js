@@ -135,8 +135,10 @@ command('userAgent', 'set user agent', function(args) {
     });
 });
 
-command('group', 'group tabs', function(args) {
-    // TODO
+command('setV3ExtensionId', 'set V3 Extension Id', function(args) {
+  RUNTIME('setV3ExtensionId', { id: args[0] });
+});
+command('group', 'group tabs: [tid] [n]', function(args) {
     const param = {};
     switch (args.length) {
         case 1:
@@ -152,4 +154,78 @@ command('group', 'group tabs', function(args) {
             break;
     }
     RUNTIME('group', param);
+});
+command("moveToGroup", "move tabs to group: [gid] [tid] [n]", function (args) {
+    const param = { tabIndices: [] };
+    switch (args.length) {
+        case 3:
+            const base = parseInt(args[1]);
+            const n = parseInt(args[2]);
+            for (let i = 0; i < n; i++) {
+                param.tabIndices.push(base + i);
+            }
+        case 2:
+            if (param.tabIndices) {
+                param.tabIndices.push(parseInt(args[1]));
+            }
+        case 1:
+            param.groupIndex = parseInt(args[0]);
+            RUNTIME('groupByIndex', param);
+            break;
+        case 0:
+    }
+});
+command("ungroup", "move tabs out of group: [tid] [n]", function (args) {
+    const param = {};
+    switch (args.length) {
+        case 1:
+            param.tabIndices = [parseInt(args[0])];
+            break;
+        case 2:
+            param.tabIndices = [];
+            const n = parseInt(args[1]);
+            const base = parseInt(args[0]);
+            for (let i = 0; i < n; i++) {
+                param.tabIndices.push(base + i);
+            }
+            break;
+    }
+    RUNTIME('ungroup', param);
+});
+command("removeGroup", "remove group but remain tabs: [gid]", function (args) {
+    const param = {};
+    if (args.length > 0) {
+        param.groupIndex = parseInt(args[0]);
+    }
+    RUNTIME('removeGroup', param);
+});
+command("renameGroup", "rename group: [name] [gid]", function (args) {
+    const param = {};
+    switch (args.length) {
+        case 2:
+            param.groupIndex = parseInt(args[1]);
+        case 1:
+            param.title = args[0];
+    }
+    RUNTIME('updateGroupByIndex', param);
+});
+command("colorGroup", 'set group color: <color> [grid] ("grey", "blue", "red", "yellow", "green", "pink", "purple", or "cyan")', function (args) {
+    const param = {};
+    switch (args.length) {
+        case 2:
+            param.groupIndex = parseInt(args[1]);
+        case 1:
+            param.color = args[0];
+    }
+    RUNTIME('updateGroupByIndex', param);
+});
+command("toggleCollapseGroup", "collapse/uncollapse group: [gid]", function (args) {
+    const param = {};
+    if (args.length > 0) {
+        param.groupIndex = parseInt(args[0]);
+    }
+    RUNTIME('toggleCollapseGroup', param);
+});
+command("moveGroup", "change group position", function (args) {
+    // TODO: api design
 });

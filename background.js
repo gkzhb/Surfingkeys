@@ -1287,7 +1287,7 @@ const ChromeService = (function() {
         });
     };
     self.download = function(message, sender, sendResponse) {
-        chrome.downloads.download({ url: message.url })
+        chrome.downloads.download({ url: message.url });
     };
     self.executeScript = function(message, sender, sendResponse) {
         chrome.tabs.executeScript(sender.tab.id, {
@@ -1605,9 +1605,8 @@ const ChromeService = (function() {
     self.getContainerName = _getContainerName(self, _response);
 
     function _getTabIds(tabIndices, cb) {
-        // TODO call other extension tabGroup
         if (self.v3ExtensionId) {
-            chrom.runtime.sendMessage(
+            chrome.runtime.sendMessage(
                 self.v3ExtensionId,
                 {
                     type: 'tabGroups',
@@ -1619,16 +1618,14 @@ const ChromeService = (function() {
                         const cTabs = tabs.filter((tab) => (!groups.some(group => tab.groupId == group.id)));
                         const ids = [];
                         for (const index of tabIndices) {
-                            if (index < cTabs.length) {
-                                ids.push(cTabs[index].id);
+                            if (index <= cTabs.length) {
+                                ids.push(cTabs[index - 1].id);
                             }
                         }
                         cb(ids);
                     });
                 }
             );
-        } else {
-            console.log('v3ExtensionId is null');
         }
     }
     self.setV3ExtensionId = function(message, sender, sendResponse) {
@@ -1636,13 +1633,14 @@ const ChromeService = (function() {
     };
     /**
      * Group tabs
+     * { groupId, tabIndices }
      */
     self.group = function(message, sender, sendResponse) {
         const params = {};
         if (message.groupId) {
             params.groupId = message.groupId;
         }
-        if (message.tabIndices) {
+        if (message.tabIndices && message.tabIndices.length > 0) {
             params.tabIds = message.tabIndices;
             _getTabIds(message.tabIndices, (ids) => {
                 params.tabIds = ids;
@@ -1657,6 +1655,159 @@ const ChromeService = (function() {
                 chrome.tabs.group(params);
             });
         }
+    };
+    function _getGroup(option, cb) {
+        // console.log('_getGroup', option, self.v3ExtensionId);
+        if (self.v3ExtensionId) {
+            chrome.runtime.sendMessage(
+                self.v3ExtensionId,
+                {
+                    type: 'tabGroups',
+                    func: 'query',
+                    params: [option],
+                },
+                cb
+            );
+        }
+    }
+    /**
+    * Group tabs to the group with specified group index
+    * { groupIndex, tabIndices }
+    */
+    self.groupByIndex = function (message, sender, sendResponse) {
+        // find group id from group index
+        _getGroup({}, (groups) => {
+            // groups order is reversed
+            if (message.groupIndex <= groups.length) {
+                self.group({
+                    groupId: groups[message.groupIndex - 1].id,
+                    tabIndices: message.tabIndices,
+                });
+            }
+        });
+    };
+    /**
+    * Ungroup tabs from group
+    * { tabIndices }
+    */
+    self.ungroup = function(message, sender, sendResponse) {
+        const params = {};
+        if (message.tabIndices && message.tabIndices.length > 0) {
+            params.tabIds = message.tabIndices;
+            _getTabIds(message.tabIndices, (ids) => {
+                params.tabIds = ids;
+                chrome.tabs.ungroup(params);
+            });
+        } else {
+            chrome.tabs.query({
+                active: true,
+                currentWindow: true,
+            }, (tabs) => {
+                params.tabIds = tabs[0].id;
+                chrome.tabs.ungroup(params);
+            });
+        }
+    };
+    self.removeGroup = function(message, sender, sendResponse) {
+        const ungroupTabs = (tabs) => {
+            chrome.tabs.ungroup({ tabIds: tabs.map(tab => tab.id) });
+        };
+        if (message.groupIndex) {
+            _getGroup({}, (groups) => {
+                // groups order is reversed
+                if (message.groupIndex <= groups.length) {
+                    chrome.tabs.query({
+                        active: true,
+                        currentWindow: true,
+                        groupId: groups[message.groupIndex - 1].id,
+                    }, ungroupTabs);
+                }
+            });
+        } else {
+            chrome.tabs.query({
+                active: true,
+                currentWindow: true,
+            }, (tabs) => {
+                chrome.tabs.query({
+                        currentWindow: true,
+                        groupId: tabs[0].groupId
+                }, ungroupTabs);
+            });
+        }
+    };
+    function _updateGroup(groupId, props) {
+        const {
+            collapsed,
+            color,
+            title,
+        } = props;
+        // console.log('updateGroup', groupId, props);
+        chrome.runtime.sendMessage(
+            self.v3ExtensionId,
+            {
+                type: 'tabGroups',
+                func: 'update',
+                params: [groupId, {
+                    collapsed,
+                    color,
+                    title,
+                }],
+            }
+        );
+    }
+    self.updateGroup = function(message, sender, sendResponse) {
+        _updateGroup(message.groupId, message);
+    };
+
+    self.updateGroupByIndex = function(message, sender, sendResponse) {
+        if (message.groupIndex) {
+            _getGroup({}, (groups) => {
+                // console.log('update group groups', groups);
+                if (message.groupIndex <= groups.length) {
+                    _updateGroup(groups[message.groupIndex - 1].id, message);
+                }
+            });
+        } else {
+            chrome.tabs.query({
+                active: true,
+                currentWindow: true,
+            }, (tabs) => {
+                _updateGroup(tabs[0].groupId, message);
+            });
+        }
+    };
+
+    self.toggleCollapseGroup = function(message, sender, sendResponse) {
+        if (message.groupIndex) {
+            _getGroup({}, (groups) => {
+                if (message.groupIndex <= groups.length) {
+                    const group = groups[message.groupIndex - 1];
+                    _updateGroup(
+                        group.id,
+                        {
+                            collapsed: !group.collapsed,
+                        }
+                    );
+                }
+            });
+        } else {
+            chrome.tabs.query({
+                active: true,
+                currentWindow: true,
+            }, (tabs) => {
+                // tab group of current actvie tab is always uncollapsed
+                _updateGroup(tabs[0].groupId, { collapsed: true });
+                // TODO: activate next tab
+            });
+        }
+    };
+
+    /**
+    * Move group around(change position or move to other window)
+    * { targetIndex, groupIndex, windowId }
+    */
+    self.moveGroup = function(message, sender, sendResponse) {
+        // TODO: api param design and implement
     };
 
     chrome.runtime.setUninstallURL("http://brookhong.github.io/2018/01/30/why-did-you-uninstall-surfingkeys.html");
