@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - feat/communicate-v3-ext
   pull_request:
 
 jobs:
