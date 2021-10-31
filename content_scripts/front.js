@@ -238,6 +238,7 @@ function createFront() {
     self.showEditor = function(element, onWrite, type) {
         try {
             if (runtime.conf.useNeovim) {
+                console.log('trigger nvim');
                 Normal.passFocus(true);
                 element.focus();
                 chrome.runtime.sendMessage("egpjdkipkomnmjhjmdamaniclmdlobbo", {command: 'nvimify'},
@@ -322,6 +323,7 @@ function createFront() {
         _inlineQuery = args;
     };
     self.openOmniquery = function(args) {
+        console.log('omnibar query', args);
         self.openOmnibar(({type: "OmniQuery", extra: args.query, style: args.style}));
     };
 

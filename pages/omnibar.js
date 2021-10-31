@@ -41,6 +41,7 @@ function _filterByTitleOrUrl(urls, query) {
     return urls;
 }
 
+// DEBUG: Omnibar
 /**
  * The omnibar provides kinds of functions that need user input, for example,
  *
@@ -271,6 +272,7 @@ const Omnibar = (function() {
         bookmarkFolders;
 
     var lastInput = "", handler, lastHandler = null;
+    // DEBUG: Front.omnibar
     var ui = Front.omnibar;
     ui.onclick = function(e) {
         if (handler.onClick) {

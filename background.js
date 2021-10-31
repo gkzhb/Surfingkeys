@@ -1603,6 +1603,62 @@ const ChromeService = (function() {
     };
 
     self.getContainerName = _getContainerName(self, _response);
+
+    function _getTabIds(tabIndices, cb) {
+        // TODO call other extension tabGroup
+        if (self.v3ExtensionId) {
+            chrom.runtime.sendMessage(
+                self.v3ExtensionId,
+                {
+                    type: 'tabGroups',
+                    func: 'query',
+                    params: [{ collapsed: true }],
+                },
+                (groups) => {
+                    chrome.tabs.query({}, (tabs) => {
+                        const cTabs = tabs.filter((tab) => (!groups.some(group => tab.groupId == group.id)));
+                        const ids = [];
+                        for (const index of tabIndices) {
+                            if (index < cTabs.length) {
+                                ids.push(cTabs[index].id);
+                            }
+                        }
+                        cb(ids);
+                    });
+                }
+            );
+        } else {
+            console.log('v3ExtensionId is null');
+        }
+    }
+    self.setV3ExtensionId = function(message, sender, sendResponse) {
+        self.v3ExtensionId = message.id;
+    };
+    /**
+     * Group tabs
+     */
+    self.group = function(message, sender, sendResponse) {
+        const params = {};
+        if (message.groupId) {
+            params.groupId = message.groupId;
+        }
+        if (message.tabIndices) {
+            params.tabIds = message.tabIndices;
+            _getTabIds(message.tabIndices, (ids) => {
+                params.tabIds = ids;
+                chrome.tabs.group(params);
+            });
+        } else {
+            chrome.tabs.query({
+                active: true,
+                currentWindow: true,
+            }, (tabs) => {
+                params.tabIds = tabs[0].id;
+                chrome.tabs.group(params);
+            });
+        }
+    };
+
     chrome.runtime.setUninstallURL("http://brookhong.github.io/2018/01/30/why-did-you-uninstall-surfingkeys.html");
     return self;
 })();

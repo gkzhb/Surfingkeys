@@ -18,6 +18,7 @@ function _isDomainApplicable(domain) {
     return !domain || domain.test(document.location.href) || domain.test(window.origin);
 }
 
+// DEBUG: mapkey
 function _mapkey(mode, keys, annotation, jscode, options) {
     options = options || {};
     if (_isDomainApplicable(options.domain)) {

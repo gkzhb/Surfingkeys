@@ -459,6 +459,9 @@ function _map(mode, nks, oks) {
     return old_map;
 }
 
+/**
+ * DEBUG RUNTIME
+ */
 function RUNTIME(action, args, callback) {
     var actionsRepeatBackground = ['closeTab', 'nextTab', 'previousTab', 'moveTab', 'reloadTab', 'setZoom', 'closeTabLeft','closeTabRight', 'focusTabByIndex'];
     (args = args || {}).action = action;

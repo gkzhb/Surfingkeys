@@ -134,3 +134,22 @@ command('userAgent', 'set user agent', function(args) {
         userAgent: args.join(' ')
     });
 });
+
+command('group', 'group tabs', function(args) {
+    // TODO
+    const param = {};
+    switch (args.length) {
+        case 1:
+            param.tabIndices = [parseInt(args[0])];
+            break;
+        case 2:
+            param.tabIndices = [];
+            const n = parseInt(args[1]);
+            const base = parseInt(args[0]);
+            for (let i = 0; i < n; i++) {
+                param.tabIndices.push(base + i);
+            }
+            break;
+    }
+    RUNTIME('group', param);
+});
