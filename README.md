@@ -18,6 +18,69 @@ Surfingkeys works for Firefox(above 57) since 0.9.15, with below features as exc
 
 Surfingkeys is doing its best to make full use of keyboard for web browsing, but there are some limitations from Google Chrome itself, please see [Brook Build of Chromium](https://brookhong.github.io/2021/04/18/brook-build-of-chromium.html) for a more thorough experience.
 
+## About this fork repo
+
+We can make use of Manifest V3 APIs by communicating with another extension that
+uses Manifest V3. I made [such a simple extension](https://github.com/gkzhb/chrome-mv3-api)
+to just call chrome APIs. You need to install it in development mode of
+[chrome extensions](about:extensions) by "Load unpacked".
+
+After installing that simple extension, copy its extension ID, and add 
+configuration(in Advanced mode) for Surfingkeys of this fork(replace `your-extension-id` with your
+real extension ID):
+```javascript
+RUNTIME('setV3ExtensionId', { id: 'your-extension-id' });
+```
+
+### APIs
+
+I added some background APIs(`./background.js`) and some frontend commands(`./pages/frontend.js`).
+
+You can use commands with ':' and there prompts the omnibar.
+
+Here are the commands and their parameters(parameters in `[]` are optional, in
+`<>` are required):
+
+* `group [tid] [n]`: group the tabs `[tid, tid + n)`, default group current
+active tab
+* `moveToGroup [gid] [tid] [n]`: move tabs `[tid, tid + n)` to the group `gid`
+* `removeGroup [gid]`: remove the tab group but remain containing tabs
+* `ungroup [tid] [n]`: move tabs `[tid, tid + n)` out of tab groups
+* `moveGroup`: move tab group around(reorder or to other windows)
+  * TODO: not implemented yet
+* `renameGroup [name] [gid]`: rename group `gid` to `name`(may not contain spaces
+currently)
+* `colorGroup <color> [gid]`: set tab group `gid`'s color to `color`(color
+string must exactly match currently)
+* `toggleCollapseGroup [gid]`: toggle the tab group `gid`'s collapse status
+
+About parameter names:
+
+* `tid`: the index of current visible tabs in current window(exclude all
+collapsed tabs).
+* `gid`: the index of the tab groups in current window.
+
+Default parameter value is always currently active tab or the tab group
+containing the active tab.
+
+### Add key mappings
+
+You can referrence the default mappings to see how to set mappings for Commands.
+Here are some examples:
+
+```javascript
+map(';pa', ':setProxyMode always', 0, '#13set proxy mode `always`');
+
+map('g0', ':feedkeys 99E', 0, "#3Go to the first tab");
+
+map('gc', ':toggleCollapseGroup');
+```
+
+### Bugs to fix
+
+* After togglling current tab group to collapsed, the active tab is not changed
+and is collapsed.
+
 ## Installation
 
 * [Surfingkeys - Chrome Web Store](https://chrome.google.com/webstore/detail/surfingkeys/gfbliohnnapiefjpjlpjnehglfpaknnc)
